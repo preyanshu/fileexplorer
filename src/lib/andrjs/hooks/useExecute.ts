@@ -1,4 +1,4 @@
-import type { Fee, Msg } from "@andromedaprotocol/andromeda.js";
+import type { Fee, Msg } from "@/@andromedaprotocol/andromeda.js";
 import { Coin } from "@cosmjs/proto-signing";
 import { useCallback } from "react";
 import useAndromedaClient from "./useAndromedaClient";

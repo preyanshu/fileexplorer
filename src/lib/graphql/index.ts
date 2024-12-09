@@ -1,4 +1,4 @@
-import { StrictTypedTypePolicies, TypedFieldPolicy } from "@andromedaprotocol/gql";
+import { StrictTypedTypePolicies, TypedFieldPolicy } from "@/@andromedaprotocol/gql";
 import { ApolloClient, InMemoryCache } from "@apollo/client";
 
 

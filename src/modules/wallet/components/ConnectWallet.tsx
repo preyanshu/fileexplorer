@@ -1,28 +1,45 @@
 "use client";
-import { Button } from "@chakra-ui/react";
 import React, { FC } from "react";
 import Connected from "./Connected";
 import useAndromedaClient from "@/lib/andrjs/hooks/useAndromedaClient";
 import { connectAndromedaClient, useAndromedaStore } from "@/zustand/andromeda";
-import { PlusSquareIcon } from "@chakra-ui/icons";
 
-interface ConnectWalletProps { }
+interface ConnectWalletProps {}
+
 const ConnectWallet: FC<ConnectWalletProps> = (props) => {
-  const { } = props;
+  const {} = props;
   const { isLoading } = useAndromedaStore();
   const client = useAndromedaClient();
+
   if (client) {
     return <Connected />;
   }
+
   return (
-    <Button
-      leftIcon={<PlusSquareIcon boxSize={5} />}
-      colorScheme="purple"
+    <button
       onClick={() => connectAndromedaClient()}
-      isLoading={isLoading}
+      className={`flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition ${
+        isLoading ? "cursor-not-allowed opacity-50" : ""
+      }`}
+      disabled={isLoading}
     >
-      Connect Wallet
-    </Button>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-5 h-5 mr-2"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 4v16m8-8H4"
+        />
+      </svg>
+      {isLoading ? "Loading..." : "Connect Wallet"}
+    </button>
   );
 };
+
 export default ConnectWallet;

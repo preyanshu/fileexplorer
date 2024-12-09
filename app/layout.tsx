@@ -3,6 +3,8 @@ import Providers from "./providers";
 import { Metadata } from "next";
 import PoweredByLogo from "@/modules/ui/PoweredByLogo";
 
+import "@/styles/globals.css";
+
 
 export const metadata: Metadata = {
     title: {
@@ -20,10 +22,9 @@ const RootLayout = async (props: Props) => {
 
     return (
         <html lang="en">
-            <body>
+            <body className="dark">
                 <Providers>
                     {children}
-                    <PoweredByLogo />
                 </Providers>
             </body>
         </html>

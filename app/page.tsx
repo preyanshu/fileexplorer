@@ -1,36 +1,46 @@
+'use client'
+import FileExplorer from "@/components/file-explorer";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useState } from "react";
 import { ConnectWallet } from "@/modules/wallet";
-import { Center, Image, Link, Text, VStack } from "@chakra-ui/react";
-import React from "react"
 
+export default function Page() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-interface Props {
+  return (
+    <div className="flex items-center justify-center h-screen ">
+      <div className="absolute top-4 right-4">
+        <ConnectWallet />
+
+      </div>
+      {/* Center the trigger button */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger className="px-4 py-2 rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300 focus:outline-none focus:ring focus:ring-gray-400">
+          Select
+        </DialogTrigger>
+        <DialogContent
+          className="max-w-[95vw] md:max-w-[65vw] p-1"
+          style={{ overflowX: "auto", overflowY: "hidden" }}
+          onKeyDown={(e)=>{
+            e.preventDefault()
+            console.log(e.key)
+          }}
+        >
+          <DialogHeader>
+            <DialogDescription>
+              {/* Pass `setIsDialogOpen` to FileExplorer */}
+              <FileExplorer closeDialog={() => setIsDialogOpen(false)} />
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
-
-const Page = async (props: Props) => {
-    const { } = props;
-    return (
-        <Center minH="100vh">
-            <VStack spacing={3}>
-                <Image
-                    src="/logo.png"
-                    w='6rem'
-                />
-                <Text fontSize="3xl" fontWeight='bold'>
-                    Andromeda Nextjs Starter Template
-                </Text>
-                <Text>
-                    Click button to connect <b>Andromeda Devnet</b>.
-                </Text>
-                <Text fontWeight='light' mb='6'>
-                    Learn more about Andromeda&nbsp;
-                    <Link isExternal href="https://docs.andromedaprotocol.io" color='blue' textDecoration="underline">
-                        here
-                    </Link>
-                </Text>
-                <ConnectWallet />
-            </VStack>
-        </Center>
-    )
-}
-
-export default Page

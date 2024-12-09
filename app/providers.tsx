@@ -36,10 +36,10 @@ const Providers: FC<Props> = (props) => {
         <ApolloProvider client={apolloClient}>
             <QueryClientProvider client={queryClient}>
                 <CacheProvider>
-                    <ChakraProvider theme={theme}>
+                
                         <ColorModeScript storageKey="ANDR_NEXTJS_STARTER" initialColorMode={theme.config.initialColorMode} />
                         {children}
-                    </ChakraProvider>
+           
                 </CacheProvider>
             </QueryClientProvider>
         </ApolloProvider>

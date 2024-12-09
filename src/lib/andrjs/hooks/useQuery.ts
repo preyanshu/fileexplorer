@@ -1,4 +1,4 @@
-import type { Msg } from "@andromedaprotocol/andromeda.js";
+import type { Msg } from "@/@andromedaprotocol/andromeda.js";
 import { useCallback } from "react";
 import useAndromedaClient from "./useAndromedaClient";
 

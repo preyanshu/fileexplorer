@@ -1,114 +1,137 @@
 import useQueryChain from "@/lib/graphql/hooks/chain/useChainConfig";
 import { disconnectAndromedaClient, useAndromedaStore } from "@/zustand/andromeda";
-import { ChevronDownIcon, CloseIcon, ExternalLinkIcon } from "@chakra-ui/icons";
-import {
-  Badge,
-  Button,
-  HStack,
-  Image,
-  Input,
-  Popover,
-  PopoverBody,
-  PopoverContent,
-  PopoverTrigger,
-  Text,
-} from "@chakra-ui/react";
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 
-interface ConnectedProps { }
+interface ConnectedProps {}
 const Connected: FC<ConnectedProps> = (props) => {
-  const { } = props;
+  const {} = props;
   const { accounts, chainId } = useAndromedaStore();
   const account = accounts[0];
   const { data: config } = useQueryChain(chainId);
   const address = account?.address ?? "";
   const truncatedAddress = address.slice(0, 6) + "......" + address.slice(address.length - 4);
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <Popover placement="bottom-end">
-      {({ isOpen }) => (
-        <>
-          <PopoverTrigger>
-            <Button
-              variant="outline"
-              size="lg"
-              borderColor={isOpen ? "primary.600" : "gray.300"}
-            >
-              <HStack mr='2'>
-                <Image src={config?.iconUrls?.sm ?? ""} w="5" />
-                <Text fontSize="md">{truncatedAddress}</Text>
-                <Badge
-                  colorScheme={
-                    config?.chainType === "mainnet" ? "green" : "purple"
-                  }
-                  fontSize={8}
-                  py="1"
-                  rounded="full"
+    <div className="relative">
+      <button
+        className={`flex items-center justify-between border ${
+          isOpen ? "border-purple-400" : "border-gray-600"
+        } rounded-lg px-4 py-2 w-full bg-gray-800 shadow-md text-white`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center space-x-2">
+          {config?.iconUrls?.sm && (
+            <img src={config.iconUrls.sm} alt="chain icon" className="w-5 h-5" />
+          )}
+          <span className="text-sm font-medium">{truncatedAddress}</span>
+          <span
+            className={`text-xs px-2 py-1 rounded-full ${
+              config?.chainType === "mainnet"
+                ? "bg-green-700 text-green-200"
+                : "bg-purple-700 text-purple-200"
+            }`}
+          >
+            {config?.chainType}
+          </span>
+        </div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className={`w-4 h-4 transform ${
+            isOpen ? "rotate-180" : ""
+          } transition-transform`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M10 3a1 1 0 01.707.293l6 6a1 1 0 01-1.414 1.414L10 5.414l-5.293 5.293A1 1 0 013.293 9.293l6-6A1 1 0 0110 3z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-50">
+          <div className="p-4">
+            <div className="flex items-center mb-3 space-x-2">
+              {config?.iconUrls?.sm && (
+                <img
+                  src={config.iconUrls.sm}
+                  alt="chain icon"
+                  className="w-5 h-5"
+                />
+              )}
+              <span className="text-gray-300 font-semibold">
+                {config?.chainName ?? config?.chainId}
+              </span>
+              <span
+                className={`text-xs px-2 py-1 rounded-full ${
+                  config?.chainType === "mainnet"
+                    ? "bg-green-700 text-green-200"
+                    : "bg-purple-700 text-purple-200"
+                }`}
+              >
+                {config?.chainType}
+              </span>
+            </div>
+            <input
+              type="text"
+              value={account?.address ?? ""}
+              readOnly
+              className="w-full p-2 mb-3 text-sm text-gray-300 border border-gray-700 rounded-lg bg-gray-800 focus:outline-none"
+            />
+            <div className="flex space-x-2">
+              <a
+                href={config?.blockExplorerAddressPages[0]?.replaceAll(
+                  "${address}",
+                  account?.address ?? ""
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-300 border border-gray-700 rounded-lg hover:bg-gray-800 transition w-full"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  {config?.chainType}
-                </Badge>
-              </HStack>
-              <ChevronDownIcon boxSize={4} />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent>
-            <PopoverBody>
-              <HStack mb={3} justifyContent="start">
-                <Image src={config?.iconUrls?.sm ?? ""} w="5" />
-                <Text fontWeight={600} color="gray.700" flex={1}>
-                  {config?.chainName ?? config?.chainId}
-                </Text>
-                <Badge
-                  colorScheme={
-                    config?.chainType === "mainnet" ? "green" : "purple"
-                  }
-                  fontSize={8}
-                  py="1"
-                  rounded="full"
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.828 21H4a1 1 0 01-1-1V4a1 1 0 011-1h9.828a1 1 0 01.707.293l6.172 6.172a1 1 0 01.293.707V20a1 1 0 01-1 1h-7z"
+                  />
+                </svg>
+                Explorer
+              </a>
+              <button
+                onClick={disconnectAndromedaClient}
+                className="flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition w-full"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-3 h-3 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  {config?.chainType}
-                </Badge>
-              </HStack>
-              <Input
-                value={account?.address ?? ""}
-                mb={2}
-                p={2}
-                color="gray.700"
-                fontSize="sm"
-                readOnly
-              />
-              <HStack mb={2}>
-                <Button
-                  as="a"
-                  href={config?.blockExplorerAddressPages[0]?.replaceAll(
-                    "${address}",
-                    account?.address ?? ""
-                  )}
-                  target="_blank"
-                  leftIcon={<ExternalLinkIcon boxSize={4} />}
-                  variant="outline"
-                  fontWeight={500}
-                  color="gray.700"
-                  w="full"
-                  size="sm"
-                >
-                  Explorer
-                </Button>
-                <Button
-                  leftIcon={<CloseIcon boxSize={2} />}
-                  onClick={disconnectAndromedaClient}
-                  fontWeight={500}
-                  colorScheme="red"
-                  w="full"
-                  size="sm"
-                >
-                  Disconnect
-                </Button>
-              </HStack>
-            </PopoverBody>
-          </PopoverContent>
-        </>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </Popover>
+    </div>
   );
 };
+
 export default Connected;
