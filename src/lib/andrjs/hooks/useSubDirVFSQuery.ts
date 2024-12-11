@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import useAndromedaClient from "@/lib/andrjs/hooks/useAndromedaClient";
-import VirtualFileSystemAPI from "@/@andromedaprotocol/andromeda.js/dist/api/VirtualFileSystemAPI";
+import VirtualFileSystemAPI from "@andromedaprotocol/andromeda.js/dist/api/VirtualFileSystemAPI";
 
 interface FileSystemItem {
   name: string;

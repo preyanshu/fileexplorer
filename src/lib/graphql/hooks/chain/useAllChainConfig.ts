@@ -1,4 +1,4 @@
-import { useAllChainConfigQuery } from "@/@andromedaprotocol/gql/dist/__generated/react"
+import { useAllChainConfigQuery } from "@andromedaprotocol/gql/dist/__generated/react"
 
 export default function useQueryAllChainInfo(
 ) {

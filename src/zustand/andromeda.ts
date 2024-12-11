@@ -1,7 +1,7 @@
 "use client";
 import { apolloClient } from "@/lib/graphql";
-import AndromedaClient from "@/@andromedaprotocol/andromeda.js";
-import { refetchChainConfigQuery, refetchKeplrConfigQuery, IChainConfigQuery, IKeplrConfigQuery } from "@/@andromedaprotocol/gql/dist/__generated/react";
+import AndromedaClient from "@andromedaprotocol/andromeda.js";
+import { refetchChainConfigQuery, refetchKeplrConfigQuery, IChainConfigQuery, IKeplrConfigQuery } from "@andromedaprotocol/gql/dist/__generated/react";
 import { GasPrice } from "@cosmjs/stargate/build/fee";
 import type { AccountData, Keplr } from "@keplr-wallet/types";
 import { create } from "zustand";
@@ -91,7 +91,7 @@ export const connectAndromedaClient = async () => {
         const accounts = await signer.getAccounts();
 
         // This is needed because there is some ssr error with andromeda client creation
-        const client = state.client || new (await import("@/@andromedaprotocol/andromeda.js")).default()
+        const client = state.client || new (await import("@andromedaprotocol/andromeda.js")).default()
         await client.connect(config.chainUrl,
             config.kernelAddress,
             config.addressPrefix,
