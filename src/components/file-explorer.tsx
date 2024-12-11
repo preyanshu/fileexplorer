@@ -62,7 +62,7 @@ export default function FileExplorer({ closeDialog ,currentPath, homePath , vfsA
   }, [fileSystem, currentPath, client, homePath, vfsAddress]);
   
 
-  
+
   React.useEffect(() => {
     if (fileSystem) {
       if (currentPath) {
@@ -213,7 +213,6 @@ export default function FileExplorer({ closeDialog ,currentPath, homePath , vfsA
           tabIndex={0}
           ref={bigDivRefs[2] as unknown as React.RefObject<HTMLButtonElement>}
           onKeyDown={(e) => handleKeyDown(e, 2, bigDivRefs)}
-          disabled={((!client && error) || (!fileSystem && !error)) as boolean}
         >
           Cancel
         </Button>
