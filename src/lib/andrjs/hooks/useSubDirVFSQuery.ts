@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import useAndromedaClient from "@/lib/andrjs/hooks/useAndromedaClient";
 import VirtualFileSystemAPI from "@/@andromedaprotocol/andromeda.js/dist/api/VirtualFileSystemAPI";
-import { add, min } from "lodash";
 
 interface FileSystemItem {
   name: string;
@@ -20,19 +19,24 @@ const useSubDir = () => {
 
 
   const updateTree = (tree: FileSystemItem | null, path: string[], newData: FileSystemItem[]): FileSystemItem => {
+
+    const pathParts = [...path];
+    const rootNodeName = pathParts.shift();
+
     if (!tree) {
       const rootNode: FileSystemItem = {
-        name: "~andr12xxey4enkcfgv522cxl03xmk7tdpmy6k5m5zhr", 
-        address: "",
-        parent_address: "",
+        name: rootNodeName!, 
+        address: "_",
+        parent_address: "_",
         symlink: null,
         children: new Map<string, FileSystemItem>(newData.map((item) => [item.name, item])), 
       };
       return rootNode;
     }
 
-    const pathParts = [...path];
-    pathParts.shift();
+   
+
+
     let currentNode = tree;
 
     while (pathParts.length > 0) {
@@ -64,25 +68,73 @@ const useSubDir = () => {
   };
 
 
-  const preconstructTree = async (path: string) => {
-    const parts = path.split("/");
-    let currentPath = "";
-    const tasks = [];
-
-    for (let i = 0; i < parts.length; i++) {
-      currentPath = parts.slice(0, i + 1).join("/");
-      console.log("Current path", currentPath);
-      tasks.push(fetchSubDir(currentPath));
+  const preconstructTree = async (vfsAddress: string, path: string) => {
+    if (!client) {
+      console.warn("Client not initialized yet");
+      setError("Client not initialized");
+      return;
     }
 
+    if (!path) {
+      console.warn("Path is required");
+      setError("Path is required");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+
+    const parts = path.split("/");
+    let currentPath = "";
+    const vfsAPI = new VirtualFileSystemAPI(client, vfsAddress);
+  
     
-    await Promise.all(tasks);
+    const fetchTasks = parts.map((_, i) => {
+      currentPath = parts.slice(0, i + 1).join("/");
+      console.log("Fetching data for path:", currentPath);
+  
+      return vfsAPI.subDir(currentPath);
+    });
+  
+    try {
 
+      const results = await Promise.all(fetchTasks);
 
+      let accumulatedTree = treeData ? { ...treeData } : null;
+
+    results.forEach((data, index) => {
+      if (data) {
+        const pathParts = parts.slice(0, index + 1);
+        accumulatedTree = updateTree(
+          accumulatedTree,
+          pathParts,
+          data.map((item: any) => ({
+            name: item.name,
+            address: item.address,
+            parent_address: item.parent_address,
+            symlink: item.symlink || null,
+            children: item.children ? new Map<string, FileSystemItem>() : undefined,
+          }))
+        );
+      }
+    });
+
+   
+    setTreeData(accumulatedTree);
+    
+
+  
+ 
+    } catch (err : any) {
+      console.error("Error during tree construction:", err);
+      setError(err?.message || "Unknown error occurred");
+    }
   };
+  
+  
+
 
   const fetchSubDir = useCallback(
-    async (path?: string): Promise<FileSystemItem | null> => {
+    async (vfsAddress: string, path: string) : Promise<FileSystemItem | null> => {
       if (!client) {
         console.warn("Client not initialized yet");
         setError("Client not initialized");
@@ -110,7 +162,7 @@ const useSubDir = () => {
         let node = currentNode;
 
         for (const part of pathParts) {
-            console.log("Part", part , node.children);
+            
           if (!node.children || !node.children.has(part)) {
             return null;
           }
@@ -121,13 +173,13 @@ const useSubDir = () => {
           }
         }
 
-        return node; // Return the node if the path exists
+        return node; 
       };
 
       const pathParts = path.split("/");
       const existingNode = findPathInTree(pathParts, treeData);
 
-      console.log("Existing node", existingNode);
+      
 
       if (existingNode) {
         console.log("Path already exists, returning existing node data");
@@ -138,26 +190,26 @@ const useSubDir = () => {
       }
 
       try {
-        const vfsAddress = "andr1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqm5w5ze"; // Replace with actual contract address
         const vfsAPI = new VirtualFileSystemAPI(client, vfsAddress);
 
         const data = await vfsAPI.subDir(path);
         setSubDirData(data);
 
         setTreeData((prevTreeData) => {
+          
           return updateTree(prevTreeData, path.split("/"), data);
         });
 
         return null;
       } catch (err: any) {
         setError(err.message);
-        console.error("Error fetching subDir data:", err);
+        
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [client, treeData]
+    [client, treeData ]
   );
 
   return { subDirData, error, isLoading, fetchSubDir, treeData , preconstructTree };

@@ -1,31 +1,27 @@
-import * as React from "react"
-import { ChevronRight, Folder, ChevronLast, File, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useSubDirVFSQuery } from "@/lib/andrjs"
-import useAndromedaClient from "@/lib/andrjs/hooks/useAndromedaClient"
 
+import * as React from "react";
+import { ChevronLast, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSubDirVFSQuery } from "@/lib/andrjs";
+import useAndromedaClient from "@/lib/andrjs/hooks/useAndromedaClient";
+import { useRef } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { handleKeyDown } from "./keyboard-nav";
+import { FileSystemItem } from "./types";
+import { FileSystemTree } from "./file-system-tree";
+import { FolderContents } from "./folder-contents";
+import { FileDetails } from "./file-details";
 
-type FileSystemItem = {
-  name: string;
-  address : string;
-  children?: Map<string, FileSystemItem> | null;
-
-};
-
-
-
-function addParentReferences(item: FileSystemItem, parent?: FileSystemItem) {
-
-  if(!item) return;
+function addParentReferences(item: FileSystemItem, parent?: FileSystemItem): void {
+  if (!item) return;
 
   if (!('parent' in item)) {
     Object.defineProperty(item, 'parent', {
       value: parent,
-      writable: true, 
-      enumerable: true, 
-      configurable: true 
+      writable: true,
+      enumerable: true,
+      configurable: true,
     });
   } else {
     item.parent = parent;
@@ -36,262 +32,222 @@ function addParentReferences(item: FileSystemItem, parent?: FileSystemItem) {
   }
 }
 
-
-
 type FileExplorerProps = {
-    closeDialog: () => void;
-  };
+  closeDialog: () => void;
+  currentPath?: string;  
+  homePath: string;
+  vfsAddress: string;
+  onInput: (selectedFiles: (FileSystemItem | null)[]) => void;
+};
 
-export default function FileExplorer({ closeDialog }: FileExplorerProps) {
+export default function FileExplorer({ closeDialog ,currentPath, homePath , vfsAddress , onInput}: FileExplorerProps) {
+  const {  isLoading, error, fetchSubDir, treeData: fileSystem , preconstructTree } = useSubDirVFSQuery();
+  const client = useAndromedaClient();
 
-     const { 
-      subDirData, 
-      isLoading, 
-      error, 
-      fetchSubDir, 
-      treeData: fileSystem,  
-      preconstructTree 
-    } = useSubDirVFSQuery();
-
-    const client = useAndromedaClient();
-
-  
-
-
-
-
-  const [selectedFolder, setSelectedFolder] = React.useState<FileSystemItem| null>(null) ;
-  const [selectedItems, setSelectedItems] = React.useState<Set<string>>(new Set())
-  const [selectedFile, setSelectedFile] = React.useState<FileSystemItem | null>(null)
-
-  React.useEffect(() => {
-   
-    if (!fileSystem ) {
-      fetchSubDir("~andr12xxey4enkcfgv522cxl03xmk7tdpmy6k5m5zhr");
-    }
-  
-   
-    if (fileSystem && !selectedFolder) {
-      setSelectedFolder(fileSystem);
-    }
-  }, [fileSystem, selectedFolder, client]);
-
-
-  if(!client || isLoading){
-    return <>Loading .. </>
-  }
-
-  if( error){
-    return <>{error} </>
-  }
-
-  if(!fileSystem){
-    return <>No data </>
-  }
-  
-    const toggleItemSelection = (itemName: string) => {
-      setSelectedItems(prev => {
-        const newSet = new Set(prev)
-        if (newSet.has(itemName)) {
-          newSet.delete(itemName)
-        } else {
-          newSet.add(itemName)
-        }
-        return newSet
-      })
-    }
+  const [selectedFolder, setSelectedFolder] = React.useState<FileSystemItem | null>(null);
+  const [selectedItems, setSelectedItems] = React.useState<Set<FileSystemItem | null>>(new Set());
+  const [selectedFile, setSelectedFile] = React.useState<FileSystemItem | null>(null);
+  const [currentLoadingSubDir, setCurrentLoadingSubDir] = React.useState<string | null>(null);
 
  
+  const bigDivRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
 
-    if(fileSystem){
-      addParentReferences(fileSystem)
+
+
+  React.useEffect(() => {
+    if (!fileSystem) {
+      const fullPath = currentPath ? `${homePath}/${currentPath}` : homePath;
+      preconstructTree(vfsAddress, fullPath);
     }
+  }, [fileSystem, currentPath, client, homePath, vfsAddress]);
   
-    return (
-      <div className="flex flex-col  bg-zinc-950 text-zinc-50 min-w-[800px] " >
-        {/* Header */}
-        <div className="flex w-full">
-          <div className="w-1/4 border-r border-zinc-800">
-            <div className="p-2 border-b border-zinc-800">
-              <h1 className="text-sm font-semibold">VFS Explorer</h1>
-            </div>
-            <ScrollArea className="h-[60vh] w-full" >
-              <div className="py-1">
+
+  
+  React.useEffect(() => {
+    if (fileSystem) {
+      if (currentPath) {
+        const pathParts = currentPath.split("/"); // Split the currentPath into parts
+        let currentFolder: FileSystemItem | undefined = fileSystem;
+  
+        for (const part of pathParts) {
+          if (!currentFolder || !currentFolder.children) {
+            currentFolder = undefined;
+            break;
+          }
+          currentFolder = currentFolder.children.get(part); // Traverse to the next child
+        }
+  
+        if (currentFolder) {
+          setSelectedFolder(currentFolder); // Set the located folder
+        } else {
+          console.error("Folder not found for path:", currentPath);
+          setSelectedFolder(fileSystem); // Set to root if not found
+        }
+      } else {
+        setSelectedFolder(fileSystem); // Set to root if no currentPath
+      }
+    }
+  }, [fileSystem, currentPath]); // Depend on fileSystem and currentPath
+  
+
+  const toggleItemSelection = (item: FileSystemItem) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(item)) {
+        newSet.delete(item);
+      } else {
+        newSet.add(item);
+      }
+      return newSet;
+    });
+  };
+
+  React.useEffect(() => {
+    bigDivRefs[0]?.current?.focus();
+  }, [bigDivRefs[0].current]);
+
+  if (fileSystem) {
+    addParentReferences(fileSystem);
+  }
+
+  return (
+    <div className="flex flex-col bg-zinc-950 text-zinc-50 min-w-[800px]" tabIndex={-1}>
+      {/* Header */}
+      <div className="flex w-full">
+        <div className="border-r border-zinc-800 overscroll-y-auto min-w-[300px]">
+          <div className="p-2 border-b border-zinc-800">
+            <h1 className="text-sm font-semibold">VFS Explorer</h1>
+          </div>
+          <ScrollArea className="h-[60vh] w-full">
+            {(error || !client || !fileSystem) && (
+              <>
+                {Array.from({ length: 14 }).map((_, index) => (
+                  <Skeleton key={index} className="h-[25px] my-3 mx-3" />
+                ))}
+              </>
+            )}
+            {(!error && client && fileSystem) && (
+              <div className="py-1" ref={bigDivRefs[0]} tabIndex={0} onKeyDown={(e) => handleKeyDown(e, 0, bigDivRefs)}>
                 <FileSystemTree
+                  fetchSubDir={fetchSubDir}
                   item={fileSystem}
                   level={0}
                   onSelectFolder={setSelectedFolder}
                   selectedFolder={selectedFolder}
+                  isLoading={isLoading}
+                  currentLoadingSubDir={currentLoadingSubDir}
+                  setCurrentLoadingSubDir={setCurrentLoadingSubDir}
+                  bigDivRefs={bigDivRefs}
+                  handleKeyDown={handleKeyDown}
+                  vfsAddress  = {vfsAddress}
                 />
               </div>
-            </ScrollArea>
+            )}
+          </ScrollArea>
+        </div>
+        <div className="flex-1 flex flex-col">
+          <div className="p-2 border-b border-zinc-800">
+            <Breadcrumbs folder={selectedFolder} onNavigate={setSelectedFolder} />
           </div>
-          <div className="flex-1 flex flex-col">
-            <div className="p-2 border-b border-zinc-800">
-              <Breadcrumbs folder={selectedFolder} onNavigate={setSelectedFolder} />
-            </div>
-            <div className="flex-1 flex">
-              <ScrollArea className="flex-1 h-[60vh] overflow-y-auto w-full">
+          <div className="flex-1 flex relative">
+            <ScrollArea className="flex-1 h-[60vh] overflow-y-auto w-full">
+              {((!client && error) || (!fileSystem && !error))&& (
+                <>
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <Skeleton key={index} className="h-[37px] my-4 mx-6" />
+                  ))}
+                </>
+              )}
+
+              {(error && client) && (
+                <div className="flex items-center justify-center h-[60vh] w-[100%]">
+                  <div className="w-1/2">
+                  <p className="text-sm text-zinc-300"> error : {error}</p>
+                  </div>
+                </div>
+              )}
+
+              {(!error && client && fileSystem) && (
                 <div className="py-1">
                   <FolderContents
                     folder={selectedFolder}
                     selectedItems={selectedItems}
                     toggleItemSelection={toggleItemSelection}
+                    selectedFile={selectedFile}
                     onSelectFile={setSelectedFile}
+                    bigDivRefs={bigDivRefs}
+                    handleKeyDown={handleKeyDown}
                   />
                 </div>
-              </ScrollArea>
-              {selectedFile && (
-                <div className="w-1/3 border-l border-zinc-800 p-4">
-                  <div className="flex justify-between items-between mb-4">
-                    <h2 className="text-lg font-semibold text-left">File Details</h2>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="-mt-[2px]"
-                      onClick={() => setSelectedFile(null)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <FileDetails file={selectedFile} />
-                </div>
               )}
-            </div>
+            </ScrollArea>
+            {selectedFile && (
+              <div className="w-1/3 border-l border-zinc-800 p-4 absolute top-0 right-0 bg-zinc-950 h-full overflow-y-auto">
+                <div className="flex justify-between items-between mb-4">
+                  <h2 className="text-lg font-semibold text-left">File Details</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="-mt-[2px]"
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                <FileDetails file={selectedFile} />
+              </div>
+            )}
           </div>
         </div>
-  
-        {/* Footer */}
-        <div className="w-full px-4 py-3 border-t border-zinc-800 flex justify-end ">
-          <Button
-            variant="secondary"
-            className="mr-4"
-            onClick={() => {
-              console.log('Cancel clicked')
-              closeDialog();
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="default"
-            onClick={() => {
-              console.log('Save clicked')
-            }}
-          >
-            Open
-          </Button>
-        </div>
       </div>
-    )
-  }
-  
-  function FileSystemTree({
-    item,
-    level,
-    onSelectFolder,
-    selectedFolder,
-  }: {
-    item: FileSystemItem;
-    level: number;
-    onSelectFolder: (folder: FileSystemItem) => void;
-    selectedFolder: FileSystemItem;
-  }) {
-    const [isOpen, setIsOpen] = React.useState(level === 0);
-    const [focusIndex, setFocusIndex] = React.useState(-1);
-    const treeRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
-  
-    const toggleOpen = () => {
-      setIsOpen(!isOpen);
-      onSelectFolder(item);
-    };
-  
-    const isSelected = item === selectedFolder;
-  
-    const handleKey = (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        setIsOpen(!isOpen);
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        navigate(1);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        navigate(-1);
-      }
-    };
-  
-    const navigate = (direction: number) => {
-      console.log('Navigating')
-      const siblings = item.children ? Array.from(item.children.values()) : [];
-      const maxIndex = siblings.length - 1;
-      let newFocusIndex = focusIndex + direction;
-  
-   
-      if (newFocusIndex > maxIndex) newFocusIndex = 0;
-      if (newFocusIndex < 0) newFocusIndex = maxIndex;
-  
-      setFocusIndex(newFocusIndex);
-  
 
-      const targetNode = treeRefs.current[newFocusIndex];
-      if (targetNode) {
-        targetNode.focus();
-        onSelectFolder(siblings[newFocusIndex]);
-      }
-    };
-  
-    React.useEffect(() => {
-    
-      if (!isOpen) {
-        setFocusIndex(-1);
-      }
-    }, [isOpen]);
-  
-    return (
-      <div onKeyDown={handleKey}>
+      {/* Footer */}
+      <div className="w-full px-4 py-3 border-t border-zinc-800 flex justify-end">
         <Button
-          ref={(el) => (treeRefs.current[level] = el)}
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-full justify-start px-1 py-0 text-xs font-normal text-zinc-100 hover:bg-zinc-800 hover:text-zinc-50 
-              ${level > 0 ? "ml-3" : ""} 
-              ${isSelected ? "bg-zinc-800 text-zinc-50" : ""}`}
-          onClick={toggleOpen}
+          variant="secondary"
+          className="mr-4"
+          onClick={() => {
+            console.log('Cancel clicked');
+            closeDialog();
+          }}
+          tabIndex={0}
+          ref={bigDivRefs[2] as unknown as React.RefObject<HTMLButtonElement>}
+          onKeyDown={(e) => handleKeyDown(e, 2, bigDivRefs)}
+          disabled={((!client && error) || (!fileSystem && !error)) as boolean}
         >
-          <ChevronRight
-            className={`mr-1 h-3 w-3 transition-transform ${isOpen ? "rotate-90" : ""}`}
-          />
-          <Folder className="mr-1 h-3 w-3 text-zinc-500" />
-          {item.name.length > 15 ? `${item.name.slice(0, 15)}...` : item.name}
+          Cancel
         </Button>
-        {isOpen && item.children && (
-          <div className="ml-3">
-            {Array.from(item.children.values()).map((child, index) => (
-              <FileSystemTree
-                key={index}
-                item={child}
-                level={level + 1}
-                onSelectFolder={onSelectFolder}
-                selectedFolder={selectedFolder}
-              />
-            ))}
-          </div>
-        )}
+        <Button
+          variant="default"
+          onClick={() => {
+            console.log('Save clicked');
+            closeDialog();
+            onInput(Array.from(selectedItems));
+          
+          }}
+          tabIndex={0}
+          ref={bigDivRefs[3] as unknown as React.RefObject<HTMLButtonElement>}
+          onKeyDown={(e) => handleKeyDown(e, 3, bigDivRefs)}
+          disabled={!(!error && client && fileSystem)}
+        >
+          Select
+        </Button>
       </div>
-    );
-  }
-  
+    </div>
+  );
+}
 
 function Breadcrumbs({ folder, onNavigate }: { 
-  folder: FileSystemItem,
-  onNavigate: (folder: FileSystemItem) => void
+  folder: FileSystemItem | null;
+  onNavigate: (folder: FileSystemItem) => void;
 }) {
-  const breadcrumbs: FileSystemItem[] = []
-  let current: FileSystemItem | undefined = folder
+  if (!folder) return null;
+
+  const breadcrumbs: FileSystemItem[] = [];
+  let current: FileSystemItem | undefined = folder;
   while (current) {
-    breadcrumbs.unshift(current)
-    current = current?.parent 
+    breadcrumbs.unshift(current);
+    current = current.parent;
   }
 
   return (
@@ -309,114 +265,5 @@ function Breadcrumbs({ folder, onNavigate }: {
         </React.Fragment>
       ))}
     </div>
-  )
-}
-
-function FolderContents({ 
-  folder, 
-  selectedItems, 
-  toggleItemSelection,
-  onSelectFile
-}: { 
-  folder: FileSystemItem; 
-  selectedItems: Set<string>;
-  toggleItemSelection: (itemName: string) => void;
-  onSelectFile: (file: FileSystemItem) => void;
-}) {
-  const contents = Array.from(folder?.children?.values() || []) 
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
-
-  return (
-    <div>
-      {contents.length > 0 ? (
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-left text-zinc-500">
-              <th className="w-[60px] p-2"></th>
-              <th className="p-2">Name</th>
-              <th className="p-2">Address</th>
-              <th className="p-2">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contents.map((item, index) => (
-              <tr
-                key={index}
-                className={`hover:bg-zinc-800 ${selectedItems.has(item.name) ? "text-fuchsia-500" : ""}`}
-              >
-                <td className="w-[60px] p-2">
-                  <Checkbox
-                    checked={selectedItems.has(item.name)}
-                    onCheckedChange={() => toggleItemSelection(item.name)}
-                    aria-label={`Select ${item.name}`}
-                    className="h-4 w-4 mx-[15px]"
-                  />
-                </td>
-                <td className="pl-0 pr-2 py-2 flex items-center" style={{width:"fit-content"}}>
-                  {true ? (
-                    <Folder className="mr-1 h-3 w-3 text-zinc-500" />
-                  ) : (
-                    <File className="mr-1 h-3 w-3 text-zinc-500" />
-                  )}
-                  {item.name}
-                </td>
-                <td className="p-2 text-nowrap">{item.address.slice(0, 4) + '....' + item.address.slice(-4)}</td>
-                <td className="p-2">
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto text-xs text-zinc-50 hover:text-zinc-300"
-                    onClick={() => onSelectFile(item)}
-                  >
-                    Details
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="text-zinc-500 text-s p-4">This folder is empty</p>
-      )}
-    </div>
   );
-  
-}
-
-function FileDetails({ file }: { file: FileSystemItem }) {
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
-  return (
-    <div className="text-left space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold">Name</h3>
-        <p className="text-sm">{file.name}</p>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-semibold">Name</h3>
-        <p className="text-sm">{file.address}</p>
-      </div>
-
-      {/* Placeholder for custom information based on type */}
-      <div>
-        <h3 className="text-sm font-semibold">Additional Information</h3>
-        <p className="text-sm text-zinc-400">Custom details will be displayed here based on the file type.</p>
-      </div>
-    </div>
-  )
 }

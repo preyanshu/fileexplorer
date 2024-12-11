@@ -18,7 +18,7 @@ const ConnectWallet: FC<ConnectWalletProps> = (props) => {
   return (
     <button
       onClick={() => connectAndromedaClient()}
-      className={`flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition ${
+      className={`flex items-center justify-center px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-700 transition ${
         isLoading ? "cursor-not-allowed opacity-50" : ""
       }`}
       disabled={isLoading}

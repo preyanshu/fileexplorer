@@ -16,21 +16,17 @@ const Connected: FC<ConnectedProps> = (props) => {
     <div className="relative">
       <button
         className={`flex items-center justify-between border ${
-          isOpen ? "border-purple-400" : "border-gray-600"
-        } rounded-lg px-4 py-2 w-full bg-gray-800 shadow-md text-white`}
+          isOpen ? "border-white" : "border-zinc-950"
+        } rounded-lg px-4 py-2 w-full bg-zinc-900 shadow-md text-white`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center ">
           {config?.iconUrls?.sm && (
             <img src={config.iconUrls.sm} alt="chain icon" className="w-5 h-5" />
           )}
-          <span className="text-sm font-medium">{truncatedAddress}</span>
+          <span className="text-sm font-medium mr-3">{truncatedAddress}</span>
           <span
-            className={`text-xs px-2 py-1 rounded-full ${
-              config?.chainType === "mainnet"
-                ? "bg-green-700 text-green-200"
-                : "bg-purple-700 text-purple-200"
-            }`}
+            className={`text-xs px-2 py-1 rounded-full bg-white text-black  `}
           >
             {config?.chainType}
           </span>
@@ -39,7 +35,7 @@ const Connected: FC<ConnectedProps> = (props) => {
           xmlns="http://www.w3.org/2000/svg"
           className={`w-4 h-4 transform ${
             isOpen ? "rotate-180" : ""
-          } transition-transform`}
+          } transition-transform mr-2 ml-3`}
           viewBox="0 0 20 20"
           fill="currentColor"
         >
@@ -51,7 +47,7 @@ const Connected: FC<ConnectedProps> = (props) => {
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-80 bg-zinc-900 border border-gray-700 rounded-lg shadow-lg z-50">
           <div className="p-4">
             <div className="flex items-center mb-3 space-x-2">
               {config?.iconUrls?.sm && (
@@ -65,11 +61,7 @@ const Connected: FC<ConnectedProps> = (props) => {
                 {config?.chainName ?? config?.chainId}
               </span>
               <span
-                className={`text-xs px-2 py-1 rounded-full ${
-                  config?.chainType === "mainnet"
-                    ? "bg-green-700 text-green-200"
-                    : "bg-purple-700 text-purple-200"
-                }`}
+                className={`text-xs px-2 py-1 rounded-full bg-white text-black`}
               >
                 {config?.chainType}
               </span>
