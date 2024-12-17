@@ -16,12 +16,12 @@ export default function Page() {
     "adnrjs_beta_test/beta-auction"
   ];
 
-  const handleFileSelect = (selectedFiles: (FileSystemItem | null)[]) => {
+  const handleFileSelect = (selectedFiles: (string| null)[]) => {
    
     let message = "";
     selectedFiles.forEach((file) => {
       if (file) {
-        message += `File Name: ${file.name}, Address: ${file.address}\n`;
+        message += ` Address: ${file}\n`;
       } else {
         message += "Null file encountered\n";
       }

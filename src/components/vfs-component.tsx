@@ -14,7 +14,7 @@ interface VFSComponentProps {
   homePath: string;
   vfsAddress: string;
   currentPath: string | undefined;
-  onFileSelect: (selectedFiles: (FileSystemItem | null)[]) => void;
+  onFileSelect: (selectedFiles: (string | null)[]) => void;
 }
 
 export default function VFSComponent({

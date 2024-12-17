@@ -43,7 +43,7 @@ type FileExplorerProps = {
   currentPath?: string;  
   homePath: string;
   vfsAddress: string;
-  onInput: (selectedFiles: (FileSystemItem | null)[]) => void;
+  onInput: (selectedFiles: (string | null)[]) => void;
 };
 
 export default function FileExplorer({ closeDialog ,currentPath, homePath , vfsAddress , onInput}: FileExplorerProps) {
@@ -52,7 +52,7 @@ export default function FileExplorer({ closeDialog ,currentPath, homePath , vfsA
 
 
   const [selectedFolder, setSelectedFolder] = React.useState<FileSystemItem | null>(null);
-  const [selectedItems, setSelectedItems] = React.useState<Set<FileSystemItem | null>>(new Set());
+  const [selectedItems, setSelectedItems] = React.useState<Set<string | null>>(new Set());
   const [selectedFile, setSelectedFile] = React.useState<FileSystemItem | null>(null);
 
 
@@ -107,7 +107,7 @@ export default function FileExplorer({ closeDialog ,currentPath, homePath , vfsA
   }, [fileSystem, currentPath]); 
   
 
-  const toggleItemSelection = (item: FileSystemItem) => {
+  const toggleItemSelection = (item: string) => {
     setSelectedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(item)) {

@@ -8,8 +8,8 @@ import ReactLoading from "react-loading";
 // Define the types for the props of FolderContents component.
 interface FolderContentsProps {
   folder: FileSystemItem | null;
-  selectedItems: Set<FileSystemItem | null>;
-  toggleItemSelection: (item: FileSystemItem) => void;
+  selectedItems: Set<string | null>;
+  toggleItemSelection: (item: string) => void;
   onSelectFile: (file: FileSystemItem | null) => void;
   onSelectFolder: (folder: FileSystemItem) => void;
   selectedFile: FileSystemItem | null;
@@ -95,8 +95,8 @@ export function FolderContents({
                 >
                   <td className="w-[60px] p-2">
                     <Checkbox
-                      checked={selectedItems.has(item)}
-                      onCheckedChange={() => toggleItemSelection(item)}
+                      checked={selectedItems.has(fullPath+"/"+item.name)}
+                      onCheckedChange={() => toggleItemSelection(fullPath+"/"+item.name)}
                       aria-label={`Select ${item.name}`}
                       className="h-4 w-4 mx-[15px]"
                     />
