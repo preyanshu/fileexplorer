@@ -63,7 +63,7 @@ export default function FileExplorer({ closeDialog ,currentPath, homePath , vfsA
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
   const selectBtnRef = useRef<HTMLButtonElement>(null);
 
-  const bigDivRefs = [fileTreeRef, folderContentsRef, cancelBtnRef, selectBtnRef];
+  const bigDivRefs = [fileTreeRef, folderContentsRef, cancelBtnRef, selectBtnRef]; //array for keyboard navigation
 
 
 
