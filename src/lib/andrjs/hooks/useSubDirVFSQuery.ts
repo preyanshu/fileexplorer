@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import useAndromedaClient from "@/lib/andrjs/hooks/useAndromedaClient";
 import VirtualFileSystemAPI from "@andromedaprotocol/andromeda.js/dist/api/VirtualFileSystemAPI";
+import {useQueryClient } from "@tanstack/react-query";
 
 interface FileSystemItem {
   name: string;
@@ -11,11 +12,17 @@ interface FileSystemItem {
 }
 
 const useSubDir = () => {
-  const client = useAndromedaClient();
+ 
   const [subDirData, setSubDirData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadingPaths, setLoadingPaths] = useState<Map<string, boolean>>(new Map());
   const [treeData, setTreeData] = useState<FileSystemItem | null>(null);
+
+
+  const client = useAndromedaClient();
+  const queryClient = useQueryClient(); 
+
 
 
   const updateTree = (tree: FileSystemItem | null, path: string[], newData: FileSystemItem[]): FileSystemItem => {
@@ -33,9 +40,6 @@ const useSubDir = () => {
       };
       return rootNode;
     }
-
-   
-
 
     let currentNode = tree;
 
@@ -68,64 +72,90 @@ const useSubDir = () => {
   };
 
 
+  const getDir = async (vfsAddress: string, path: string) => {
+    if(!client){
+      console.warn("Client not initialized yet");
+      setError("Client not initialized");
+      return;
+    }
+    console.log("calling")
+    const vfsAPI = new VirtualFileSystemAPI(client, vfsAddress);
+    return await vfsAPI.subDir(path);
+  };
+
+
+  const getSubDirData = (vfsAddress:string,currentPath:string) =>{
+    const queryKey = ['subDir', vfsAddress, currentPath];
+    return queryClient.fetchQuery({
+      queryKey,
+      queryFn: () => getDir(vfsAddress, currentPath),
+      staleTime: Infinity
+    });
+  }
+
+
+
+  
   const preconstructTree = async (vfsAddress: string, path: string) => {
+     
+
+    setIsLoading(true);
+    setError(null);
+  
+
     if (!client) {
       console.warn("Client not initialized yet");
       setError("Client not initialized");
       return;
     }
-
+  
     if (!path) {
       console.warn("Path is required");
       setError("Path is required");
       return;
     }
-    setIsLoading(true);
-    setError(null);
-
+  
+  
     const parts = path.split("/");
     let currentPath = "";
-    const vfsAPI = new VirtualFileSystemAPI(client, vfsAddress);
   
-    
-    const fetchTasks = parts.map((_, i) => {
+    const fetchTasks = parts.map(async(_, i) => {
       currentPath = parts.slice(0, i + 1).join("/");
       console.log("Fetching data for path:", currentPath);
-  
-      return vfsAPI.subDir(currentPath);
+      return getSubDirData(vfsAddress,currentPath);
     });
   
     try {
 
       const results = await Promise.all(fetchTasks);
 
-      let accumulatedTree = treeData ? { ...treeData } : null;
-
-    results.forEach((data, index) => {
-      if (data) {
-        const pathParts = parts.slice(0, index + 1);
-        accumulatedTree = updateTree(
-          accumulatedTree,
-          pathParts,
-          data.map((item: any) => ({
-            name: item.name,
-            address: item.address,
-            parent_address: item.parent_address,
-            symlink: item.symlink || null,
-            children: item.children ? new Map<string, FileSystemItem>() : undefined,
-          }))
-        );
-      }
-    });
-
-   
-    setTreeData(accumulatedTree);
-    
-
+      console.log("Results", results);
   
- 
-    } catch (err : any) {
+      let accumulatedTree = treeData ? { ...treeData } : null;
+  
+      results.forEach((data, index) => {
+        if (data) {
+          const pathParts = parts.slice(0, index + 1);
+          accumulatedTree = updateTree(
+            accumulatedTree,
+            pathParts,
+            data.map((item: any) => ({
+              name: item.name,
+              address: item.address,
+              parent_address: item.parent_address,
+              symlink: item.symlink || null,
+              children: item.children ? new Map<string, FileSystemItem>() : undefined,
+            }))
+          );
+        }
+      });
+  
+      setTreeData(accumulatedTree);
+      setIsLoading(false);
+  
+    } catch (err: any) {
       console.error("Error during tree construction:", err);
+      setIsLoading(false);
       setError(err?.message || "Unknown error occurred");
     }
   };
@@ -147,58 +177,24 @@ const useSubDir = () => {
         return null;
       }
 
-      setIsLoading(true);
+      setLoadingPaths(prevState => new Map(prevState.set(path, true)));
       setError(null);
 
-      const findPathInTree = (pathParts: string[], currentNode: FileSystemItem | null): FileSystemItem | null => {
-
-        console.log("Finding path in tree", pathParts, currentNode);
-        if (!currentNode) return null;
-
-        const home = pathParts[0];
-        if (currentNode.name !== home) return null;
-
-        pathParts.shift();
-        let node = currentNode;
-
-        for (const part of pathParts) {
-            
-          if (!node.children || !node.children.has(part)) {
-            return null;
-          }
-
-          node = node.children.get(part)!;
-          if(!node.children){
-            return null
-          }
-        }
-
-        return node; 
-      };
-
-      const pathParts = path.split("/");
-      const existingNode = findPathInTree(pathParts, treeData);
-
-      
-
-      if (existingNode) {
-        console.log("Path already exists, returning existing node data");
-        console.log("Existing node children", existingNode);
-        setSubDirData(existingNode.children ? Array.from(existingNode.children.values()) : []);
-        setIsLoading(false);
-        return existingNode;
-      }
-
       try {
-        const vfsAPI = new VirtualFileSystemAPI(client, vfsAddress);
 
-        const data = await vfsAPI.subDir(path);
+
+       
+        const data = await getSubDirData(vfsAddress, path);
+
         setSubDirData(data);
+
 
         setTreeData((prevTreeData) => {
           
           return updateTree(prevTreeData, path.split("/"), data);
         });
+
+
 
         return null;
       } catch (err: any) {
@@ -206,13 +202,17 @@ const useSubDir = () => {
         
         return null;
       } finally {
-        setIsLoading(false);
+        setLoadingPaths(prevState => {
+          const updatedState = new Map(prevState);
+          updatedState.set(path, false);
+          return updatedState;
+        });
       }
     },
     [client, treeData ]
   );
 
-  return { subDirData, error, isLoading, fetchSubDir, treeData , preconstructTree };
+  return { subDirData, error, isLoading,loadingPaths ,fetchSubDir, treeData , preconstructTree };
 };
 
 export default useSubDir;

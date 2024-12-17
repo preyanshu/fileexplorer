@@ -9,13 +9,11 @@ interface FileSystemTreeProps {
   level: number;
   onSelectFolder: (folder: FileSystemItem) => void;
   selectedFolder: FileSystemItem | null;
-  fetchSubDir: (vfsaddress:string , path: string) => Promise<FileSystemItem | null>;
-  isLoading: boolean;
-  currentLoadingSubDir: string | null;
-  setCurrentLoadingSubDir: (subdir: string | null) => void;
-  bigDivRefs: React.RefObject<HTMLDivElement>[];
+  fetchSubDir: (vfsaddress: string, path: string) => Promise<FileSystemItem | null>;
+  loadingPaths: Map<string, boolean>;
   vfsAddress: string;
   handleKeyDown: (e: React.KeyboardEvent, divIndex: number, bigDivRefs: React.RefObject<HTMLDivElement>[]) => void;
+  skipParent?: boolean; 
 }
 
 export function FileSystemTree({
@@ -24,38 +22,57 @@ export function FileSystemTree({
   onSelectFolder,
   selectedFolder,
   fetchSubDir,
-  isLoading,
-  currentLoadingSubDir,
-  setCurrentLoadingSubDir,
-  bigDivRefs,
+  loadingPaths,
   vfsAddress,
   handleKeyDown,
+  skipParent = false
+
 }: FileSystemTreeProps) {
- 
 
   const [isOpen, setIsOpen] = React.useState(level === 0);
- 
 
   const isSelected = item === selectedFolder;
 
-  // Construct the full path based on the current item and its parents.
-  const constructFullPath = (item: FileSystemItem | null): string => {
-    let path = item?.name || "";
-    let parent = item?.parent; // Assuming each `item` has a `parent` reference.
-    while (parent) {
-      path = `${parent.name}/${path}`;
-      parent = parent.parent;
-    }
-    return path;
-  };
+  const fullPath = React.useMemo(() => {
+    const constructFullPath = (item: FileSystemItem | null): string => {
+      let path = item?.name || "";
+      let parent = item?.parent;
+      while (parent) {
+        path = `${parent.name}/${path}`;
+        parent = parent.parent;
+      }
+      return path;
+    };
+
+    return constructFullPath(item);
+  }, [item]);
 
   const navigateTo = async (path: string) => {
-    
-    await fetchSubDir(vfsAddress , path);
-    if (item) {
-      onSelectFolder(item);
-    }
+    await fetchSubDir(vfsAddress, path);
   };
+
+  
+  if (skipParent && level === 0) {
+    return (
+      <div className="ml-3">
+        {item?.children &&
+          Array.from(item.children.values()).map((child, index) => (
+            <FileSystemTree
+              key={index}
+              item={child}
+              level={level + 1}
+              onSelectFolder={onSelectFolder}
+              selectedFolder={selectedFolder}
+              fetchSubDir={fetchSubDir}
+              loadingPaths={loadingPaths}
+              vfsAddress={vfsAddress}
+              handleKeyDown={handleKeyDown}
+              skipParent={false} 
+            />
+          ))}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -68,8 +85,8 @@ export function FileSystemTree({
         onClick={() => {
           setIsOpen(!isOpen);
           if (item) {
-            setCurrentLoadingSubDir(item.address);
-            navigateTo(constructFullPath(item));
+            onSelectFolder(item!);
+            navigateTo(fullPath);
           }
         }}
         tabIndex={0}
@@ -82,7 +99,7 @@ export function FileSystemTree({
         {item && item?.name?.length > 15 ? `${item.name.slice(0, 15)}...` : item?.name}
       </Button>
 
-      {currentLoadingSubDir === item?.address && isLoading && (
+      {item && loadingPaths.get(fullPath) && (
         <div className="ml-11 flex items-center space-x-2 text-sm text-gray-400">
           <ReactLoading type="spin" color="gray" height={16} width={16} />
           <span>Loading . . .</span>
@@ -99,12 +116,10 @@ export function FileSystemTree({
               onSelectFolder={onSelectFolder}
               selectedFolder={selectedFolder}
               fetchSubDir={fetchSubDir}
-              isLoading={isLoading}
-              currentLoadingSubDir={currentLoadingSubDir}
-              setCurrentLoadingSubDir={setCurrentLoadingSubDir}
-              bigDivRefs={bigDivRefs}
+              loadingPaths={loadingPaths}
               vfsAddress={vfsAddress}
               handleKeyDown={handleKeyDown}
+              skipParent={false} 
             />
           ))}
         </div>

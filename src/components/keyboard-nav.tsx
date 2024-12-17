@@ -1,11 +1,11 @@
-type BigDivRefs = React.RefObject<HTMLDivElement>[];
+type BigDivRefs = React.RefObject<(HTMLDivElement | HTMLButtonElement)>[];
 
 export const handleKeyDown = (
     e: React.KeyboardEvent,
     divIndex: number,
     bigDivRefs: BigDivRefs
   ): void => {
-    console.log("e.key", e.key);
+    
     let items: any  = [];
     const currentFocus = document.activeElement as HTMLElement;
   

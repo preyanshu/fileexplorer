@@ -4,7 +4,7 @@ import theme from "@/styles/theme";
 import { KEPLR_AUTOCONNECT_KEY, connectAndromedaClient, initiateKeplr, useAndromedaStore } from "@/zustand/andromeda";
 import { ApolloProvider } from "@apollo/client";
 import { CacheProvider } from "@chakra-ui/next-js";
-import { ChakraProvider, ColorModeScript } from "@chakra-ui/react";
+import { ColorModeScript } from "@chakra-ui/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { FC, ReactNode, useLayoutEffect, useMemo } from "react"
 
